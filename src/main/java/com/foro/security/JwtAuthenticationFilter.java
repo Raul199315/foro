@@ -10,11 +10,11 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-
 import java.io.IOException;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
     private final JwtUtil jwtUtil;
     private final CustomUserDetailsService userDetailsService;
 
@@ -27,9 +27,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
 
-        // Evitar validar JWT en las rutas públicas de autenticación
         String path = request.getServletPath();
-        if (path.startsWith("/api/auth")) {
+
+        // ✅ Evitar validar JWT en las rutas públicas de autenticación
+        if (path.equals("/auth/login") || path.equals("/auth/register")) {
             chain.doFilter(request, response);
             return;
         }
@@ -40,12 +41,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (jwtUtil.validateToken(token)) {
                 String username = jwtUtil.getUsernameFromToken(token);
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities());
+                UsernamePasswordAuthenticationToken auth =
+                        new UsernamePasswordAuthenticationToken(
+                                userDetails, null, userDetails.getAuthorities());
                 auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(auth);
             }
         }
+
         chain.doFilter(request, response);
     }
 }
